@@ -338,7 +338,6 @@
           var touchobj = e.changedTouches[0];
           startx = parseInt(touchobj.clientX);
           starty = parseInt(touchobj.clientY);
-          keyState[32] = true;
           e.preventDefault();
           }, false)
           
@@ -362,9 +361,7 @@
             keyState[37] = false;
             keyState[38] = false;
             keyState[39] = false;
-            keyState[40] = false;
-            keyState[32] = false;
-            counter = shootSpeed;             
+            keyState[40] = false; 
           e.preventDefault();
           }, false)        
   
@@ -376,13 +373,15 @@
           var touchobj = e.changedTouches[0] // reference first touch point (ie: first finger)
           counter = shootSpeed;
           keyState[32] = true;
+          keyState[37] = true;
           e.preventDefault()
           }, false)
           
           shoot_nappi.addEventListener('touchend', function(e){
           var touchobj = e.changedTouches[0] // reference first touch point for this event
           keyState[32] = false;
-          counter = shootSpeed;          
+          counter = shootSpeed; 
+          keyState[37] = false;                   
           e.preventDefault()
           }, false)
                  
