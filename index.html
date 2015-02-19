@@ -203,11 +203,10 @@
       }
       
       //Ammusten luominen
-      function Missile(x, y, xSpeed, ySpeed, color, direction, koko, z) {
+      function Missile(x, y, xSpeed, direction, koko, z) {
         this.x = x;
         this.y = y;
         this.xSpeed = xSpeed;
-        this.ySpeed = ySpeed;
         this.color = color;
         this.direction = -direction;
         this.koko = koko; 
@@ -282,34 +281,32 @@
           if(lumihiutaleLaskuri++ > 0.5*2*speed){
             lumihiutaleLaskuri = 0;
             lumihiutaleet.push(new Lumihiutale(x-120*suhde*korkeusSkaalaus, y-135*suhde*korkeusSkaalaus, 0.3*korkeusSkaalaus*ElsaKokoSuhde)); //luodaan uusi lumihiutale                     
-            document.getElementById('jaa').volume = 0.5;
-            document.getElementById('jaa').play();
+            //document.getElementById('jaa').volume = 0.5;
+            //document.getElementById('jaa').play();
           }            
         }
         
         //Ääni seis jos Elsa pysähtyy
         if(!keyState[37] && !keyState[38] && !keyState[39] && !keyState[40]){
-          document.getElementById('jaa').pause();
-          document.getElementById('jaa').currentTime = 0;           
+          //document.getElementById('jaa').pause();
+          //document.getElementById('jaa').currentTime = 0;           
         }        
                 
         if(keyState[32]){ //välilyönti, eli ampuminen
           if(counter == shootSpeed){
             counter = 0;
             //Soitetaan ääni kun ammutaan
-            document.getElementById('laser').volume = shootVolume;
-            document.getElementById('laser').currentTime = 0;
-            document.getElementById('laser').play();
-            color = "#ff1493"; 
+            //document.getElementById('laser').volume = shootVolume;
+            //document.getElementById('laser').currentTime = 0;
+            //document.getElementById('laser').play();
             //Luodaan uusi ammus
             if (suunta == 1){
-              missiles.push(new Missile(x-150*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots
+              missiles.push(new Missile(x-150*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots
             }
             else{
-              missiles.push(new Missile(x-50*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots            
+              missiles.push(new Missile(x-50*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots            
             }          
-          } 
-          counter++; 
+          counter++;
                
         }      
               
@@ -373,17 +370,29 @@
           var touchobj = e.changedTouches[0] // reference first touch point (ie: first finger)
           counter = shootSpeed;
           keyState[32] = true;
-          keyState[37] = true;
           e.preventDefault()
           }, false)
           
           shoot_nappi.addEventListener('touchend', function(e){
           var touchobj = e.changedTouches[0] // reference first touch point for this event
           keyState[32] = false;
-          counter = shootSpeed; 
-          keyState[37] = false;                   
+          counter = shootSpeed;                   
           e.preventDefault()
           }, false)
+          
+          shoot_nappi.addEventListener('touchstart', function(e){
+          var touchobj = e.changedTouches[1] // reference first touch point (ie: first finger)
+          counter = shootSpeed;
+          keyState[32] = true;
+          e.preventDefault()
+          }, false)
+          
+          shoot_nappi.addEventListener('touchend', function(e){
+          var touchobj = e.changedTouches[1] // reference first touch point for this event
+          keyState[32] = false;
+          counter = shootSpeed;                   
+          e.preventDefault()
+          }, false)          
                  
         }, false)
       
@@ -761,7 +770,7 @@
           
           if (missile.z/0.65 < lumiukkoSkaalaus){
             ctx.lineWidth = 0;
-            ctx.fillStyle = missile.color;
+            ctx.fillStyle = "#ff1493";
             ctx.strokeStyle = "#000000";
                       
             ctx.beginPath();
@@ -1108,7 +1117,7 @@
           
           if (missile.z/0.65 >= lumiukkoSkaalaus){
             ctx.lineWidth = 0;
-            ctx.fillStyle = missile.color;
+            ctx.fillStyle = "#ff1493";
             ctx.strokeStyle = "#000000";
                       
             ctx.beginPath();
@@ -1176,9 +1185,9 @@
     <canvas id="canvasMaisema"></canvas>
     <canvas id="canvas"></canvas>
     
-    <audio preload="auto" id="laser" src="laser.mp3" type="audio/mpeg"></audio>
+    <!-- <audio preload="auto" id="laser" src="laser.mp3" type="audio/mpeg"></audio>
     <audio preload="auto" id="jaa" loop src="jaa.mp3" type="audio/mpeg"></audio>
-    <!-- <audio preload="auto" id="tausta" loop autoplay src="tausta.mp3" type="audio/mpeg"></audio> -->
+    <audio preload="auto" id="tausta" loop autoplay src="tausta.mp3" type="audio/mpeg"></audio> -->
 
     <div id="kosketus">
       <div id="kosketus_vasen"><img src="shoot.png" id="shoot"></div>
