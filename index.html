@@ -207,7 +207,6 @@
         this.x = x;
         this.y = y;
         this.xSpeed = xSpeed;
-        this.color = color;
         this.direction = -direction;
         this.koko = koko; 
         this.z = z;   
@@ -307,7 +306,7 @@
               missiles.push(new Missile(x-50*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots            
             }          
           counter++;
-               
+          }       
         }      
               
         //Miinustetaan kordinaatteja, jotta Elsa ei karkaa kuuvasta ulos       
