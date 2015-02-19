@@ -11,7 +11,7 @@
       var shootVolume = 0.2; 
       var x = 500;
       var y = 800;
-      var speed = originalSpeed = 5;
+      var speed = originalSpeed = 20;
       var missiles = [];
       var lumihiutaleet = [];
       var lumihiutaleLaskuri = 0;
@@ -66,7 +66,13 @@
         korkeus = canvasHeight;
         draw_maisema();
         LuoLumiukko();
-        missiles = [];          
+        missiles = []; 
+        if(canvasWidth < canvasHeight){
+          document.getElementById('liiku').width = document.getElementById('liiku').height = document.getElementById('shoot').width = document.getElementById('shoot').height = 250*suhde*2.5;
+        }
+        else{
+          document.getElementById('liiku').width = document.getElementById('liiku').height = document.getElementById('shoot').width = document.getElementById('shoot').height = 250*suhde*2;        
+        }                 
       }         
   
       //Tarkistetaan onko canvas tuettu ja asetetaan intervalli piirtämiselle
@@ -84,6 +90,12 @@
         y=y*suhde;
         speed = originalSpeed*suhde;
         korkeus = canvasHeight; 
+        if(canvasWidth < canvasHeight){
+          document.getElementById('liiku').width = document.getElementById('liiku').height = document.getElementById('shoot').width = document.getElementById('shoot').height = 250*suhde*2.5;
+        }
+        else{
+          document.getElementById('liiku').width = document.getElementById('liiku').height = document.getElementById('shoot').width = document.getElementById('shoot').height = 250*suhde*2;        
+        }        
         LuoLumiukko();         
         if (canvas.getContext){
             ctx = canvas.getContext('2d');
@@ -326,7 +338,7 @@
           var distx = 0;
           var disty = 0;
     
-          var touchElement =  document.getElementById('center_point');
+          var touchElement =  document.getElementById('liiku');
   
           //Kosketus alkaa
           touchElement.addEventListener('touchstart', function(e){
@@ -338,15 +350,16 @@
           
           //Kosketus liikkuu
           touchElement.addEventListener('touchmove', function(e){
+            var d = 25*suhde;
             var touchobj = e.changedTouches[0] // reference first touch point for this event
             var distx = parseInt(touchobj.clientX) - startx;
             var disty = parseInt(touchobj.clientY) - starty;
-            if(distx <= 25 && distx >= -25){keyState[37] = false; keyState[39] = false;}
-            else if (distx < -25){keyState[37] = true;}
-            else if (distx > 25){keyState[39] = true;}
-            if(disty <= 25 && disty >= -25){keyState[38] = false; keyState[40] = false;}
-            else if (disty < -25){keyState[38] = true;}
-            else if (disty > 25){keyState[40] = true;}          
+            if(distx <= d && distx >= -d){keyState[37] = false; keyState[39] = false;}
+            else if (distx < -d){keyState[37] = true;}
+            else if (distx > d){keyState[39] = true;}
+            if(disty <= d && disty >= -d){keyState[38] = false; keyState[40] = false;}
+            else if (disty < -d){keyState[38] = true;}
+            else if (disty > d){keyState[40] = true;}          
             e.preventDefault();
           }, false)
           
@@ -1152,10 +1165,7 @@
       }                      
       #kosketus img{
         opacity: 0.4;
-        filter: alpha(opacity=40); /* For IE8 and earlier */      
-        width: 250px;
-        height: 250px; 
-        margin: 10px;      
+        filter: alpha(opacity=40); /* For IE8 and earlier */         
       } 
       #ohjaus img{
         opacity: 1;
@@ -1178,7 +1188,7 @@
     <div id="kosketus">
       <div id="kosketus_vasen"><img src="shoot.png" id="shoot"></div>
       <div id="kosketus_oikea"><img src="move.png" id="liiku"></div>
-      <div id="ohjaus"><img src="center.png" id="center_point"></div>  
+      <!-- <div id="ohjaus"><img src="center.png" id="center_point"></div> -->  
     </div> 
       
   </body>
