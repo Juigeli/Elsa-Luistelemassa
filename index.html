@@ -296,29 +296,7 @@
           document.getElementById('jaa').pause();
           document.getElementById('jaa').currentTime = 0;           
         }        
-                
-        if(keyState[32]){ //välilyönti, eli ampuminen
-          if(counter == shootSpeed){
-            counter = 0;
-            //Soitetaan ääni kun ammutaan
-            document.getElementById('laser').volume = shootVolume;
-            document.getElementById('laser').currentTime = 0;
-            document.getElementById('laser').play();
-            //Ampumiskulma tulee randomilla 
-            //angle = (Math.random()*Math.PI/50)+8*Math.PI/2-Math.PI/20; 
-            //Valitaan väritaulukosta väri 
-            color = colors[Math.floor(Math.random() * colors.length)];
-            //Luodaan uusi ammus
-            if (suunta == 1){
-              missiles.push(new Missile(x-150*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots
-            }
-            else{
-              missiles.push(new Missile(x-50*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots            
-            }          
-          } 
-          counter++; 
-               
-        }      
+                     
               
         //Miinustetaan kordinaatteja, jotta Elsa ei karkaa kuuvasta ulos       
         if (x<((ukkoWidth-25*ElsaKokoSuhde)*suhde*korkeusSkaalaus)) {x=(ukkoWidth-25*ElsaKokoSuhde)*suhde*korkeusSkaalaus;}
@@ -370,28 +348,26 @@
             keyState[39] = false;
             keyState[40] = false;
           e.preventDefault();
-          }, false)        
-  
-  
-          //Ampuminen koskettamalla 
-          var shoot_nappi = document.getElementById('shoot');         
-  
-          shoot_nappi.addEventListener('touchstart', function(e){
-          var touchobj = e.changedTouches[0] // reference first touch point (ie: first finger)
-          counter = shootSpeed;
-          keyState[32] = true;
-          e.preventDefault()
-          }, false)
-          
-          shoot_nappi.addEventListener('touchend', function(e){
-          var touchobj = e.changedTouches[0] // reference first touch point for this event
-          keyState[32] = false;
-          counter = shootSpeed;          
-          e.preventDefault()
-          }, false)
-                 
+          }, false)                         
         }, false)
 
+      function ammu(){ 
+        document.getElementById('laser').volume = shootVolume;
+        document.getElementById('laser').currentTime = 0;
+        document.getElementById('laser').play();
+        //Ampumiskulma tulee randomilla 
+        //angle = (Math.random()*Math.PI/50)+8*Math.PI/2-Math.PI/20; 
+        //Valitaan väritaulukosta väri 
+        color = colors[Math.floor(Math.random() * colors.length)];
+        //Luodaan uusi ammus
+        if (suunta == 1){
+          missiles.push(new Missile(x-150*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots
+        }
+        else{
+          missiles.push(new Missile(x-50*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots            
+        }   
+      }
+      
       //Tämä funktio piirtää canvasiin Elsan ja maiseman
       function draw_maisema() {
         
@@ -1186,7 +1162,7 @@
     <!-- <audio preload="auto" id="tausta" loop autoplay src="tausta.mp3" type="audio/mpeg"></audio> -->
 
     <div id="kosketus">
-      <div id="kosketus_vasen"><img src="shoot.png" id="shoot"></div>
+      <div id="kosketus_vasen"><img src="shoot.png" id="shoot" onclick="ammu();"></div>
       <div id="kosketus_oikea"><img src="move.png" id="liiku"></div>
       <!-- <div id="ohjaus"><img src="center.png" id="center_point"></div> -->  
     </div> 
