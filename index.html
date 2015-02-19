@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Elsa luistelemassa</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">    
+    <script type="text/javascript">
+      var ctx = ctxMaisema = null;
+      var canvas = null;
+      var counter = 15;
+      var shootSpeed = originalShootSpeed = 15;
+      var shootVolume = 0.2; 
+      var x = 500;
+      var y = 800;
+      var speed = originalSpeed = 5;
+      var missiles = [];
+      var lumihiutaleet = [];
+      var lumihiutaleLaskuri = 0;
+      var lumihiutaleIka = 60*3;      
+      var boxWidth = 30;
+      var boxHeight = 30;      
+      var canvasWidth = 1280;
+      var canvasHeight = 960;
+      var ukkoWidth = 130;
+      var ukkoHeight = 400;
+      var scale = 0.35;
+      var suhde= 1;
+      var suunta = 1;
+      var korkeus = 480;
+      var korkeusSkaalaus = 1;
+      var ElsaKokoSuhde = 1.5;
+      var lumiukkoX = 300;
+      var lumiukkoY = 200;
+      var lumiukkoSkaalaus = 1;
+      var osumat = 0;
+      var siirra = 255; 
+       
+      
+      //Värilista ammuksille, ihan vain huvin vuoksi laitettu kaikki tuetut värinimet
+      var colors = ["AliceBlue","AntiqueWhite","Aqua","Aquamarine","Azure","Beige","Bisque","Black","BlanchedAlmond","Blue","BlueViolet","Brown","BurlyWood","CadetBlue","Chartreuse","Chocolate","Coral","CornflowerBlue","Cornsilk","Crimson","Cyan","DarkBlue","DarkCyan","DarkGoldenRod","DarkGray","DarkGreen","DarkKhaki","DarkMagenta","DarkOliveGreen","DarkOrange","DarkOrchid","DarkRed","DarkSalmon","DarkSeaGreen","DarkSlateBlue","DarkSlateGray","DarkTurquoise","DarkViolet","DeepPink","DeepSkyBlue","DimGray","DodgerBlue","FireBrick","FloralWhite","ForestGreen","Fuchsia","Gainsboro","GhostWhite","Gold","GoldenRod","Gray","Green","GreenYellow","HoneyDew","HotPink","IndianRed","Indigo","Ivory","Khaki","Lavender","LavenderBlush","LawnGreen","LemonChiffon","LightBlue","LightCoral","LightCyan","LightGoldenRodYellow","LightGray","LightGreen","LightPink","LightSalmon","LightSeaGreen","LightSkyBlue","LightSlateGray","LightSteelBlue","LightYellow","Lime","LimeGreen","Linen","Magenta","Maroon","MediumAquaMarine","MediumBlue","MediumOrchid","MediumPurple","MediumSeaGreen","MediumSlateBlue","MediumSpringGreen","MediumTurquoise","MediumVioletRed","MidnightBlue","MintCream","MistyRose","Moccasin","NavajoWhite","Navy","OldLace","Olive","OliveDrab","Orange","OrangeRed","Orchid","PaleGoldenRod","PaleGreen","PaleTurquoise","PaleVioletRed","PapayaWhip","PeachPuff","Peru","Pink","Plum","PowderBlue","Purple","RebeccaPurple","Red","RosyBrown","RoyalBlue","SaddleBrown","Salmon","SandyBrown","SeaGreen","SeaShell","Sienna","Silver","SkyBlue","SlateBlue","SlateGray","Snow","SpringGreen","SteelBlue","Tan","Teal","Thistle","Tomato","Turquoise","Violet","Wheat","White","WhiteSmoke","Yellow","YellowGreen"];                  
+      
+      //Sivun koon muuttamisen tuki
+      var addEvent = function(elem, type, eventHandle) {
+          if (elem == null || typeof(elem) == 'undefined') return;
+          if ( elem.addEventListener ) {
+              elem.addEventListener( type, eventHandle, false );
+          } else if ( elem.attachEvent ) {
+              elem.attachEvent( "on" + type, eventHandle );
+          } else {
+              elem["on"+type]=eventHandle;
+          }
+      };                    
+      
+      //Jos ikkunan kokoa muutetaan, kutsutaan resize funktiota, joka korjaa
+      //pelikentän takaisin oikeaan kuosiin
+      addEvent(window, "resize", resize);
+                  
+      function resize(){
+        canvasWidth = canvas.scrollWidth;
+        canvasHeight = canvas.scrollHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        canvasMaisema.width = canvasWidth;
+        canvasMaisema.height = canvasHeight;        
+        suhde = (canvasWidth*scale)/640;
+        speed = originalSpeed*suhde;
+        korkeus = canvasHeight;
+        draw_maisema();
+        LuoLumiukko();
+        missiles = [];          
+      }         
+  
+      //Tarkistetaan onko canvas tuettu ja asetetaan intervalli piirtämiselle
+      function load(){
+        canvas = document.getElementById('canvas');
+        canvasMaisema = document.getElementById('canvasMaisema');
+        canvasWidth = canvas.scrollWidth;
+        canvasHeight = canvas.scrollHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        canvasMaisema.width = canvasWidth;
+        canvasMaisema.height = canvasHeight;          
+        suhde = (canvasWidth*scale)/640; 
+        x=x*suhde;
+        y=y*suhde;
+        speed = originalSpeed*suhde;
+        korkeus = canvasHeight; 
+        LuoLumiukko();         
+        if (canvas.getContext){
+            ctx = canvas.getContext('2d');
+            ctxMaisema = canvasMaisema.getContext('2d');
+            draw_maisema();
+            setInterval(Game, 1000/60); // Asetetaan intervalli Game-funktiolle 
+        }
+      }
+      
+      //Funktio, joka kutsuu piirtämistä ja näppäintenlukemista intervallin mukaan
+      function Game() {
+        draw();
+        Nappain();
+        //Skaalataan Elsaa sijainnin mukaan
+        korkeusSkaalaus = (y/canvasHeight*ElsaKokoSuhde)/((canvasWidth/canvasHeight)/1.65);             
+      }
+      
+      //Tämä funktio hoitaa lumiukon luomisen random sijaintiin
+      function LuoLumiukko(){
+          //Haetaan satunnainen sijainti         
+          lumiukkoX = Math.floor(Math.random() * ((canvasWidth-80*suhde-80*suhde)+1) + 80*suhde);
+          lumiukkoY = Math.floor(Math.random() * ((canvasHeight-175*suhde-300*suhde)+1) + 300*suhde);
+          lumiukkoSkaalaus = (lumiukkoY/canvasHeight*3.5)/((canvasWidth/canvasHeight)/1.65);              
+      }      
+      
+      //Tämä funktio piirtää lumiukon canvasiin
+      function Lumiukko(){
+          //LUMIUKKO
+        ctx.save();
+          ctx.translate(lumiukkoX,lumiukkoY);               
+          
+          ctx.scale(suhde*lumiukkoSkaalaus,suhde*lumiukkoSkaalaus)
+          ctx.translate(-450,-330);           
+          ctx.lineWidth = 1;
+          ctx.fillStyle="Snow"
+          ctx.strokeStyle = "black";
+          
+          //Alin pallo                    
+          ctx.beginPath();
+          ctx.arc(450,380,40,0,Math.PI*2);
+          ctx.fill(); 
+          ctx.stroke();
+          
+          //Keskipallo               
+          ctx.beginPath();
+          ctx.arc(450,330,30,0,Math.PI*2);
+          ctx.fill();  
+          ctx.stroke();
+          
+          //Ylin pallo
+          ctx.beginPath();
+          ctx.arc(450,290,25,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke();
+          
+          //Silmät
+          ctx.fillStyle="black"                
+          ctx.beginPath();
+          ctx.arc(440,285,3,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke(); 
+          ctx.beginPath();
+          ctx.arc(460,285,3,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke();
+          
+          //Suu
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "black";
+                      
+          ctx.beginPath();
+          ctx.arc(450,285,20,0.2*Math.PI,Math.PI*0.8,false);
+          ctx.stroke(); 
+          
+          //Napit 
+          ctx.fillStyle="black"                
+          ctx.beginPath();
+          ctx.arc(450,325,3,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke();   
+          ctx.beginPath();
+          ctx.arc(450,345,3,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke();   
+          ctx.beginPath();
+          ctx.arc(450,370,3,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke();   
+          ctx.beginPath();
+          ctx.arc(450,387,3,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke();   
+          ctx.beginPath();
+          ctx.arc(450,404,3,0,Math.PI*2);
+          ctx.fill();                     
+          ctx.stroke(); 
+          
+        ctx.restore();      
+      }         
+            
+      //Funktio, joka poistaa asioita :)
+      function removeFromList(list, object) {
+        for(i in list) {
+            if (object == list[i]) {
+                list.splice(i, 1);
+                break;
+            }
+        }
+      }
+      
+      //Ammusten luominen
+      function Missile(x, y, xSpeed, ySpeed, color, direction, koko, z) {
+        this.x = x;
+        this.y = y;
+        this.xSpeed = xSpeed;
+        this.ySpeed = ySpeed;
+        this.color = color;
+        this.direction = -direction;
+        this.koko = koko; 
+        this.z = z;   
+      }    
+    
+    //Ammusten päivitys
+      Missile.prototype.update = function() {
+        this.x += this.xSpeed*this.direction;
+        //this.y += this.ySpeed;
+        if (this.x<-boxWidth/2) {
+          this.xSpeed = -this.xSpeed;
+          removeFromList(missiles, this);
+        }
+        if (this.y<-boxHeight/2) {
+          this.ySpeed = -this.ySpeed;
+          removeFromList(missiles, this);
+        }
+        if (this.x>canvasWidth+boxWidth/2) {
+          this.xSpeed = -this.xSpeed;
+          removeFromList(missiles, this);
+        }
+        if (this.y>canvasHeight+boxHeight/2) {
+          this.ySpeed = -this.ySpeed;
+          removeFromList(missiles, this);
+        }
+        if((this.z/0.65)*0.95 < lumiukkoSkaalaus && (this.z/0.65)*1.05 > lumiukkoSkaalaus && this.x+10*suhde > lumiukkoX && this.x-10*suhde < lumiukkoX){
+          removeFromList(missiles, this);
+          LuoLumiukko();
+          osumat++; 
+        }
+      }
+      
+      //Lumihiutaleet Elsan perässä
+      function Lumihiutale(x, y, koko) {
+        if (suunta == 1){
+          this.x = x+20*suhde*korkeusSkaalaus;         
+        }
+        else{
+          this.x = x;
+        }
+        this.y = y;
+        this.koko = koko; 
+        this.counter = lumihiutaleIka;   
+      }
+      
+      //Lumihiutaleiden päivitys
+      Lumihiutale.prototype.update = function() {
+        this.counter--;
+        if(this.counter < 0){
+          removeFromList(lumihiutaleet, this);
+        }
+      } 
+      
+    //Luodaan kuuntelija näppäinkomennoille ja poistetaan käytöstä ohjausnäppäinten oletustoiminnot, eli sivun rullaus  
+    var keyState={};
+
+      function Nappain() {
+            
+        if(keyState[38] && keyState[37]){y -= (speed*korkeusSkaalaus)/1.41; x -= (speed*korkeusSkaalaus)/1.41; suunta=1;} //ylös ja vasen
+        if(keyState[38] && keyState[39]){y -= (speed*korkeusSkaalaus)/1.41; x += (speed*korkeusSkaalaus)/1.41; suunta=-1;} //ylös ja oikea        
+        if(keyState[40] && keyState[37]){y += (speed*korkeusSkaalaus)/1.41; x -= (speed*korkeusSkaalaus)/1.41; suunta=1;} //alas ja vasen
+        if(keyState[40] && keyState[39]){y += (speed*korkeusSkaalaus)/1.41; x += (speed*korkeusSkaalaus)/1.41; suunta=-1;} //alas ja oikea
+    
+        if(keyState[38] && !keyState[37] && !keyState[39]){y -= speed*korkeusSkaalaus;} //ylös
+        if(keyState[40] && !keyState[37] && !keyState[39]){y += speed*korkeusSkaalaus;} //alas
+        if(keyState[37] && !keyState[38] && !keyState[40]){x -= speed*korkeusSkaalaus; suunta=1;} //vasen
+        if(keyState[39] && !keyState[38] && !keyState[40]){x += speed*korkeusSkaalaus; suunta=-1;} //oikea        
+        
+        //Luodaan lumihiutaleita, kun Elsa liikkuu ja soitetaan ääntä
+        if(keyState[37] || keyState[38] || keyState[39] || keyState[40]){
+          if(lumihiutaleLaskuri++ > 0.5*2*speed){
+            lumihiutaleLaskuri = 0;
+            lumihiutaleet.push(new Lumihiutale(x-120*suhde*korkeusSkaalaus, y-135*suhde*korkeusSkaalaus, 0.3*korkeusSkaalaus*ElsaKokoSuhde)); //luodaan uusi lumihiutale                     
+            document.getElementById('jaa').volume = 0.5;
+            document.getElementById('jaa').play();
+          }            
+        }
+        
+        //Ääni seis jos Elsa pysähtyy
+        if(!keyState[37] && !keyState[38] && !keyState[39] && !keyState[40]){
+          document.getElementById('jaa').pause();
+          document.getElementById('jaa').currentTime = 0;           
+        }        
+                
+        if(keyState[32]){ //välilyönti, eli ampuminen
+          if(counter == shootSpeed){
+            counter = 0;
+            //Soitetaan ääni kun ammutaan
+            document.getElementById('laser').volume = shootVolume;
+            document.getElementById('laser').currentTime = 0;
+            document.getElementById('laser').play();
+            //Ampumiskulma tulee randomilla 
+            //angle = (Math.random()*Math.PI/50)+8*Math.PI/2-Math.PI/20; 
+            //Valitaan väritaulukosta väri 
+            color = colors[Math.floor(Math.random() * colors.length)];
+            //Luodaan uusi ammus
+            if (suunta == 1){
+              missiles.push(new Missile(x-150*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots
+            }
+            else{
+              missiles.push(new Missile(x-50*suhde*korkeusSkaalaus, y-300*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, 15*suhde*korkeusSkaalaus, color, suunta, 0.4*korkeusSkaalaus*ElsaKokoSuhde, korkeusSkaalaus)); //luodaan uusi shoots            
+            }          
+          } 
+          counter++; 
+               
+        }      
+              
+        //Miinustetaan kordinaatteja, jotta Elsa ei karkaa kuuvasta ulos       
+        if (x<((ukkoWidth-25*ElsaKokoSuhde)*suhde*korkeusSkaalaus)) {x=(ukkoWidth-25*ElsaKokoSuhde)*suhde*korkeusSkaalaus;}
+        if (x<((ukkoWidth-300*ElsaKokoSuhde)*suhde*korkeusSkaalaus) && suunta == -1) {x=(ukkoWidth-50*ElsaKokoSuhde)*suhde*korkeusSkaalaus;}
+        if (x>(canvasWidth+35*ElsaKokoSuhde*suhde*korkeusSkaalaus)) {x=(canvasWidth+35*ElsaKokoSuhde*suhde*korkeusSkaalaus);}
+        if (y<450*suhde) {y=450*suhde;}
+        if (y>canvasHeight+250*ElsaKokoSuhde*suhde*korkeusSkaalaus) {y=canvasHeight+250*ElsaKokoSuhde*suhde*korkeusSkaalaus;}
+
+      }                 
+          
+        //Kosketustapahtumien lukeminen     
+        //http://www.javascriptkit.com/javatutors/touchevents.shtml 
+        window.addEventListener('load', function(){
+    
+          var startx = 0;
+          var starty = 0;
+          var distx = 0;
+          var disty = 0;
+    
+          var touchElement =  document.getElementById('center_point');
+  
+          //Kosketus alkaa
+          touchElement.addEventListener('touchstart', function(e){
+          var touchobj = e.changedTouches[0];
+          startx = parseInt(touchobj.clientX);
+          starty = parseInt(touchobj.clientY);
+          e.preventDefault();
+          }, false)
+          
+          //Kosketus liikkuu
+          touchElement.addEventListener('touchmove', function(e){
+            var touchobj = e.changedTouches[0] // reference first touch point for this event
+            var distx = parseInt(touchobj.clientX) - startx;
+            var disty = parseInt(touchobj.clientY) - starty;
+            if(distx <= 25 && distx >= -25){keyState[37] = false; keyState[39] = false;}
+            else if (distx < -25){keyState[37] = true;}
+            else if (distx > 25){keyState[39] = true;}
+            if(disty <= 25 && disty >= -25){keyState[38] = false; keyState[40] = false;}
+            else if (disty < -25){keyState[38] = true;}
+            else if (disty > 25){keyState[40] = true;}          
+            e.preventDefault();
+          }, false)
+          
+          //Kosketus loppuu
+          touchElement.addEventListener('touchend', function(e){
+            keyState[37] = false;
+            keyState[38] = false;
+            keyState[39] = false;
+            keyState[40] = false;
+          e.preventDefault();
+          }, false)        
+  
+  
+          //Ampuminen koskettamalla 
+          var shoot_nappi = document.getElementById('shoot');         
+  
+          shoot_nappi.addEventListener('touchstart', function(e){
+          var touchobj = e.changedTouches[0] // reference first touch point (ie: first finger)
+          counter = shootSpeed;
+          keyState[32] = true;
+          e.preventDefault()
+          }, false)
+          
+          shoot_nappi.addEventListener('touchend', function(e){
+          var touchobj = e.changedTouches[0] // reference first touch point for this event
+          keyState[32] = false;
+          counter = shootSpeed;          
+          e.preventDefault()
+          }, false)
+                 
+        }, false)
+
+      //Tämä funktio piirtää canvasiin Elsan ja maiseman
+      function draw_maisema() {
+        
+        ctxMaisema.clearRect(0,0, canvasWidth, canvasHeight);
+        
+        // --- MAISEMA --
+    
+          //Hanki
+          ctxMaisema.fillStyle="#c1feff";
+          ctxMaisema.fillRect (0,0,canvasWidth,canvasHeight);
+              
+          //Taivas                                   
+          ctxMaisema.fillStyle="DeepSkyBlue";
+          ctxMaisema.fillRect (0,0,canvasWidth,(suhde*300));
+          
+        ctxMaisema.translate(canvasWidth-700*suhde,0);
+        ctxMaisema.scale(suhde,suhde);
+                           
+          //Aurinko
+          ctxMaisema.fillStyle="Yellow";
+          ctxMaisema.beginPath();
+          ctxMaisema.arc(559,80,60,0,Math.PI*2);
+          ctxMaisema.fill();
+          
+          //Auringon vasen silmä
+          ctxMaisema.fillStyle="black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.arc(539,60,6,0,Math.PI*2);
+          ctxMaisema.fill();
+           
+          //Auringon oikea silmä
+          ctxMaisema.fillStyle="black";
+                      
+          ctxMaisema.beginPath();
+          ctxMaisema.arc(579,60,6,0,Math.PI*2);
+          ctxMaisema.fill();
+          
+          //Auringon suu
+          ctxMaisema.lineWidth = 4;
+          ctxMaisema.strokeStyle = "black";
+                      
+          ctxMaisema.beginPath();
+          ctxMaisema.arc(559,80,30,0.2*Math.PI,Math.PI*0.8,false);
+          ctxMaisema.stroke();
+          
+          //Vuori
+          ctxMaisema.lineWidth = 1;
+          ctxMaisema.fillStyle="snow"
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(100,310);
+          ctxMaisema.lineTo(265,180);
+          ctxMaisema.lineTo(370,250); 
+          ctxMaisema.lineTo(330,225);                                                            
+          ctxMaisema.lineTo(400,120);
+          ctxMaisema.lineTo(475,230);  
+          ctxMaisema.lineTo(455,200);
+          ctxMaisema.lineTo(585,20); 
+          ctxMaisema.lineTo(800,320);
+          ctxMaisema.lineTo(400,320);                       
+          ctxMaisema.lineTo(200,310);                                                                                                               
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+                               
+          //Puun runko
+          ctxMaisema.fillStyle="#492400";
+          ctxMaisema.fillRect (310,210,20,150);
+          
+          // Puun latvusto
+          ctxMaisema.lineWidth = 1;
+          ctxMaisema.fillStyle="#ebffcf"
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(320,125);
+          ctxMaisema.lineTo(385,210);
+          ctxMaisema.lineTo(350,210);
+          ctxMaisema.lineTo(395,265);
+          ctxMaisema.lineTo(350,265);
+          ctxMaisema.lineTo(400,320);
+          ctxMaisema.lineTo(340,310);
+          ctxMaisema.lineTo(320,295);
+          ctxMaisema.lineTo(300,310);
+          ctxMaisema.lineTo(240,320);
+          ctxMaisema.lineTo(290,265);
+          ctxMaisema.lineTo(245,265);
+          ctxMaisema.lineTo(290,210);                    
+          ctxMaisema.lineTo(255,210); 
+          ctxMaisema.lineTo(320,125);                                                                                                   
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+
+          //Puun runko
+          ctxMaisema.fillStyle="#492400";
+          ctxMaisema.fillRect (55,238,10,60);                      
+          
+          //Puun latvusto
+          ctxMaisema.fillStyle="#ebffcf"                
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(60,188);
+          ctxMaisema.lineTo(93,230);
+          ctxMaisema.lineTo(75,230);
+          ctxMaisema.lineTo(98,258);
+          ctxMaisema.lineTo(75,258);
+          ctxMaisema.lineTo(100,285);
+          ctxMaisema.lineTo(70,280);
+          ctxMaisema.lineTo(60,273);
+          ctxMaisema.lineTo(50,280);
+          ctxMaisema.lineTo(20,285);
+          ctxMaisema.lineTo(45,258);
+          ctxMaisema.lineTo(23,258);
+          ctxMaisema.lineTo(45,230);
+          ctxMaisema.lineTo(28,230);
+          ctxMaisema.lineTo(60,188);
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();  
+          
+          //Puun runko
+          ctxMaisema.fillStyle="#492400";
+          ctxMaisema.fillRect (105,253,10,60);                      
+          
+          //Puun latvusto
+          ctxMaisema.fillStyle="#ebffcf"  
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(110,203);
+          ctxMaisema.lineTo(143,245);
+          ctxMaisema.lineTo(125,245);
+          ctxMaisema.lineTo(148,273);
+          ctxMaisema.lineTo(125,273);
+          ctxMaisema.lineTo(150,300);
+          ctxMaisema.lineTo(120,295);
+          ctxMaisema.lineTo(110,288);
+          ctxMaisema.lineTo(100,295);
+          ctxMaisema.lineTo(70,300);
+          ctxMaisema.lineTo(95,273);
+          ctxMaisema.lineTo(73,273);
+          ctxMaisema.lineTo(95,245);
+          ctxMaisema.lineTo(78,245);
+          ctxMaisema.lineTo(110,203);
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+          
+          //Puun runko
+          ctxMaisema.fillStyle="#492400";
+          ctxMaisema.fillRect (200,253,10,60);                      
+          
+          //Puun latvusto
+          ctxMaisema.fillStyle="#ebffcf"  
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(205,203);
+          ctxMaisema.lineTo(238,245);
+          ctxMaisema.lineTo(220,245);
+          ctxMaisema.lineTo(243,273);
+          ctxMaisema.lineTo(220,273);
+          ctxMaisema.lineTo(245,300);
+          ctxMaisema.lineTo(215,295);
+          ctxMaisema.lineTo(205,288);
+          ctxMaisema.lineTo(195,295);
+          ctxMaisema.lineTo(165,300);
+          ctxMaisema.lineTo(190,273);
+          ctxMaisema.lineTo(168,273);
+          ctxMaisema.lineTo(190,245);
+          ctxMaisema.lineTo(173,245);
+          ctxMaisema.lineTo(205,203);
+          ctxMaisema.fill();
+          ctxMaisema.stroke()  
+          
+          //Puun runko
+          ctxMaisema.fillStyle="#492400";
+          ctxMaisema.fillRect (5,273,10,60);                      
+          
+          //Puun latvusto
+          ctxMaisema.fillStyle="#ebffcf"  
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(10,223);
+          ctxMaisema.lineTo(43,265);
+          ctxMaisema.lineTo(25,265);
+          ctxMaisema.lineTo(48,293);
+          ctxMaisema.lineTo(25,293);
+          ctxMaisema.lineTo(50,320);
+          ctxMaisema.lineTo(20,315);
+          ctxMaisema.lineTo(10,308);
+          ctxMaisema.lineTo(0,315);
+          ctxMaisema.lineTo(-30,320);
+          ctxMaisema.lineTo(-5,293);
+          ctxMaisema.lineTo(-28,293);
+          ctxMaisema.lineTo(-5,265);
+          ctxMaisema.lineTo(-23,265);
+          ctxMaisema.lineTo(10,223);
+          ctxMaisema.fill();
+          ctxMaisema.stroke()
+          
+          //Puun runko
+          ctxMaisema.fillStyle="#492400";
+          ctxMaisema.fillRect (65,293,10,60);                      
+          
+          //Puun latvusto
+          ctxMaisema.fillStyle="#ebffcf"  
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(70,243);
+          ctxMaisema.lineTo(103,285);
+          ctxMaisema.lineTo(85,285);
+          ctxMaisema.lineTo(108,313);
+          ctxMaisema.lineTo(85,313);
+          ctxMaisema.lineTo(110,340);
+          ctxMaisema.lineTo(80,335);
+          ctxMaisema.lineTo(70,328);
+          ctxMaisema.lineTo(60,335);
+          ctxMaisema.lineTo(30,340);
+          ctxMaisema.lineTo(55,313);
+          ctxMaisema.lineTo(33,313);
+          ctxMaisema.lineTo(55,285);
+          ctxMaisema.lineTo(38,285);
+          ctxMaisema.lineTo(70,243);
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+                                   
+      //TALO            
+          //Savupiippu
+          ctxMaisema.lineWidth = 2;
+          ctxMaisema.fillStyle="DimGray"
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(520,230);
+          ctxMaisema.lineTo(535,230);
+          ctxMaisema.lineTo(535,270);
+          ctxMaisema.lineTo(520,270);
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+          
+          //Talon seinä
+          ctxMaisema.lineWidth = 2;
+          ctxMaisema.fillStyle="BurlyWood"
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(550,250);
+          ctxMaisema.lineTo(600,300);
+          ctxMaisema.lineTo(600,350);
+          ctxMaisema.lineTo(500,350);
+          ctxMaisema.lineTo(500,300);
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+          
+          //Ovi
+          ctxMaisema.lineWidth = 2;
+          ctxMaisema.fillStyle="coral"
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(535,300);
+          ctxMaisema.lineTo(565,300);
+          ctxMaisema.lineTo(565,350);
+          ctxMaisema.lineTo(535,350);
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+          
+          //Katto
+          ctxMaisema.lineWidth = 2;
+          ctxMaisema.fillStyle="DarkRed"
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(550,240);
+          ctxMaisema.lineTo(610,300);
+          ctxMaisema.lineTo(610,310);
+          ctxMaisema.lineTo(550,250);
+          ctxMaisema.lineTo(490,310);
+          ctxMaisema.lineTo(490,300);
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+          
+          //Oven nuppi
+          ctxMaisema.fillStyle="black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.arc(542,325,3,0,Math.PI*2);
+          ctxMaisema.fill();
+          
+          //Ikkuna
+          ctxMaisema.lineWidth = 2;
+          ctxMaisema.fillStyle="LightBlue"
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(540,270);
+          ctxMaisema.lineTo(560,270);
+          ctxMaisema.lineTo(560,290);
+          ctxMaisema.lineTo(540,290);
+          ctxMaisema.closePath();
+          ctxMaisema.fill();
+          ctxMaisema.stroke();
+        
+          //Ikkunan karmit
+          ctxMaisema.lineWidth = 2;
+          ctxMaisema.strokeStyle = "black";
+          
+          ctxMaisema.beginPath();
+          ctxMaisema.moveTo(550,270);
+          ctxMaisema.lineTo(550,290);
+          ctxMaisema.moveTo(540,280);
+          ctxMaisema.lineTo(560,280);
+          ctxMaisema.closePath();
+          ctxMaisema.stroke(); 
+          
+          ctxMaisema.lineWidth = 1;
+          ctxMaisema.fillStyle="Snow"
+          ctxMaisema.strokeStyle = "black";
+          
+          //Karannut pallo
+          ctxMaisema.beginPath();
+          ctxMaisema.arc(150,330,30,0,Math.PI*2);
+          ctxMaisema.fill(); 
+          ctxMaisema.stroke();
+      }
+      
+      function draw() {        
+        ctx.clearRect(0,0, canvasWidth, canvasHeight); 
+               
+        //Osumat
+        ctx.save();
+        
+        ctx.translate(canvasWidth-700*suhde,0);
+        ctx.scale(suhde,suhde); 
+                       
+          ctx.font = "60px vampyre";
+          ctx.fillStyle="snow";
+          ctx.strokeStyle = 'black';
+          ctx.miterLimit = 2;
+          ctx.lineWidth = 5*suhde;  
+          ctx.lineJoin = 'circle';  
+          ctx.strokeText(osumat,550,150);
+          ctx.fillText(osumat,550,150);
+          
+        ctx.restore();           
+          
+        // --- PIIRRETÄÄN KAIKKI LUMIHIUTALEET ---
+
+        for (var i in lumihiutaleet) {
+          var lumihiutale = lumihiutaleet[i];
+          
+          ctx.lineWidth = 0;
+          ctx.fillStyle = "rgba(255, 255, 255, "+lumihiutale.counter/lumihiutaleIka+")";
+                    
+          ctx.beginPath();
+          ctx.arc(lumihiutale.x+boxWidth*suhde,lumihiutale.y,(boxWidth/2)*suhde*2*lumihiutale.koko,0,Math.PI*2);
+          ctx.closePath();
+          ctx.fill();
+          
+          lumihiutale.update(); //Päivitetään ammukset
+        } 
+        
+        // --- Kentän reuna --               
+          ctx.fillStyle="rgba(255, 0, 0, 0.3";
+          ctx.fillRect (0,suhde*365,canvasWidth,(suhde*10)); 
+                 
+        // --- PIIRRETÄÄN KAIKKI AMMUKSET lumiukon edessä---
+         
+        for (var i in missiles) {
+          var missile = missiles[i];
+          
+          if (missile.z/0.65 < lumiukkoSkaalaus){
+            ctx.lineWidth = 0;
+            ctx.fillStyle = missile.color;
+            ctx.strokeStyle = "black";
+                      
+            ctx.beginPath();
+            //ctx.arc(missile.x,missile.y,boxWidth/2,0,1*Math.PI);
+            ctx.arc(missile.x+boxWidth*suhde,missile.y,(boxWidth/2)*suhde*2*missile.koko,1*Math.PI,Math.PI*2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            missile.update(); //Päivitetään ammukset            
+          }        
+        }        
+                                               
+        //Kutsutaan lumiukkoa jos se on Elsan takana
+        if(y-siirra*suhde*korkeusSkaalaus > lumiukkoY){
+          Lumiukko();
+        }
+        
+        // --- ELSA ---
+        ctx.save();
+          
+        ctx.translate(x,y); 
+        ctx.scale(suunta, 1);
+        ctx.scale(suhde*korkeusSkaalaus,suhde*korkeusSkaalaus);
+          
+        if(suunta == -1){
+          ctx.translate(-80,-580);
+        }
+        else{
+          ctx.translate(-225,-580);
+        } 
+        
+        //ELSA
+          //Kasvot
+          ctx.fillStyle = "#fdd5cd";
+          //ctx.strokeStyle = "#000000";
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "miter";
+          ctx.beginPath();
+          ctx.moveTo(142,145);
+          ctx.bezierCurveTo(144,143,145,141,148,140);
+          ctx.bezierCurveTo(150,140,152,140,157,140);
+          ctx.bezierCurveTo(158,139,160,138,160,136);
+          ctx.bezierCurveTo(160,133,160,130,161,128);
+          ctx.bezierCurveTo(160,127,158,128,157,128);
+          ctx.bezierCurveTo(152,124,147,120,144,115);
+          ctx.bezierCurveTo(142,112,143,109,143,106);
+          ctx.bezierCurveTo(142,104,141,104,140,103);
+          ctx.lineTo(139,86);
+          ctx.lineTo(156,75);
+          ctx.lineTo(172,75);
+          ctx.bezierCurveTo(172,75,188,94,188,94);
+          ctx.bezierCurveTo(188,94,191,97,191,97);
+          ctx.lineTo(190,112);
+          ctx.lineTo(184,144);
+          ctx.bezierCurveTo(187,145,190,148,192,151);
+          ctx.lineTo(163,156);
+          ctx.lineTo(144,155);
+          ctx.lineTo(140,152);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          //Hame keskiosa
+          ctx.fillStyle = "#6dcff6";
+          //ctx.strokeStyle = "#000000";
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "miter";
+          ctx.beginPath();
+          ctx.moveTo(139,229);
+          ctx.bezierCurveTo(139,216,140,203,138,190);
+          ctx.bezierCurveTo(136,184,135,181,133,179);
+          ctx.bezierCurveTo(131,176,130,173,130,171);
+          ctx.bezierCurveTo(131,163,134,160,136,159);
+          ctx.bezierCurveTo(142,152,136,153,147,156);
+          ctx.bezierCurveTo(154,157,164,154,170,158);
+          ctx.bezierCurveTo(175,163,182,172,182,176);
+          ctx.lineTo(169,219);
+          ctx.lineTo(142,236);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          //Viitta
+          ctx.fillStyle = "rgba(191, 216, 246, 0.75)";
+          //ctx.fillStyle = "#bfd8f6";
+          //ctx.strokeStyle = "#000000";
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "miter";
+          ctx.beginPath();
+          ctx.moveTo(170,217);
+          ctx.bezierCurveTo(170,213,169,208,170,204);
+          ctx.bezierCurveTo(178,173,183,177,189,170);
+          ctx.bezierCurveTo(204,200,217,231,234,259);
+          ctx.bezierCurveTo(258,294,286,327,321,356);
+          ctx.bezierCurveTo(365,382,408,410,447,437);
+          ctx.bezierCurveTo(449,440,450,442,444,444);
+          ctx.bezierCurveTo(406,447,370,446,334,444);
+          ctx.bezierCurveTo(334,446,332,446,330,448);
+          ctx.bezierCurveTo(322,448,317,446,312,445);
+          ctx.bezierCurveTo(308,445,305,445,302,447);
+          ctx.bezierCurveTo(292,447,288,446,282,445);
+          ctx.bezierCurveTo(270,445,260,448,249,449);
+          ctx.bezierCurveTo(249,449,229,435,227,435);
+          ctx.bezierCurveTo(226,434,170,217,170,217);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          //Hame alaosa
+          ctx.fillStyle = "#6ee8f7";
+          //ctx.strokeStyle = "#000000";
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "miter";
+          ctx.beginPath();
+          ctx.moveTo(139,230);
+          ctx.bezierCurveTo(136,237,135,247,134,258);
+          ctx.bezierCurveTo(138,307,142,355,141,406);
+          ctx.bezierCurveTo(141,420,140,433,138,446);
+          ctx.bezierCurveTo(142,449,146,452,150,453);
+          ctx.bezierCurveTo(153,454,152,458,162,460);
+          ctx.bezierCurveTo(166,459,172,459,173,456);
+          ctx.bezierCurveTo(174,452,177,450,180,452);
+          ctx.bezierCurveTo(186,460,192,459,202,459);
+          ctx.bezierCurveTo(201,460,224,454,225,455);
+          ctx.bezierCurveTo(226,455,243,459,244,457);
+          ctx.bezierCurveTo(248,456,252,456,252,450);
+          ctx.bezierCurveTo(248,439,240,435,232,430);
+          ctx.bezierCurveTo(216,372,194,315,188,249);
+          ctx.bezierCurveTo(184,238,177,226,170,216);
+          ctx.bezierCurveTo(145,222,149,227,142,233);
+          ctx.bezierCurveTo(140,232,139,228,139,230);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+            
+          // Kädessä oleva pyssy       
+          ctx.lineWidth = 0;
+          ctx.fillStyle="DarkSlateGray";
+          ctx.strokeStyle = "HotPink";
+           
+          ctx.beginPath();
+          ctx.arc(195-boxWidth*2,280,boxWidth/2,1*Math.PI,Math.PI*2);                
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();                            
+          ctx.beginPath();
+          ctx.arc(195-boxWidth,280,boxWidth/2,1*Math.PI,Math.PI*2);                
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();                                
+          ctx.arc(195,280,boxWidth/2,0,2*Math.PI);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();              
+          ctx.fillStyle="OrangeRed";
+          ctx.beginPath();
+          ctx.arc(195,280,boxWidth/6,0,2*Math.PI);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();                            
+
+        //Takaisin Elsaan                        
+            //Käsi (sormet ja kämmenselkä)
+            ctx.fillStyle = "#fdd5cd";
+            //ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.lineWidth = 1;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.beginPath();
+            ctx.moveTo(198,260);
+            ctx.bezierCurveTo(194,262,192,264,191,268);
+            ctx.bezierCurveTo(191,273,191,279,190,284);
+            ctx.bezierCurveTo(192,284,192,284,193,282);
+            ctx.bezierCurveTo(194,280,194,278,194,274);
+            ctx.lineTo(195,274);
+            ctx.bezierCurveTo(196,277,196,280,197,283);
+            ctx.bezierCurveTo(197,287,197,290,196,294);
+            ctx.bezierCurveTo(197,295,198,295,198,294);
+            ctx.bezierCurveTo(199,292,200,290,200,289);
+            ctx.bezierCurveTo(203,285,203,286,203,285);
+            ctx.bezierCurveTo(204,281,204,277,205,274);
+            ctx.bezierCurveTo(205,271,204,270,204,268);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            //Käsivarsi ja Hame yläosa 
+            ctx.fillStyle = "#daf1ff";
+            //ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.lineWidth = 1;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.beginPath();
+            ctx.moveTo(143,144);
+            ctx.bezierCurveTo(139,147,137,152,136,159);
+            ctx.bezierCurveTo(140,155,140,155,142,155);
+            ctx.bezierCurveTo(142,154,143,160,144,159);
+            ctx.bezierCurveTo(148,156,157,155,164,158);
+            ctx.bezierCurveTo(173,162,176,169,182,175);
+            ctx.bezierCurveTo(186,187,190,198,191,214);
+            ctx.bezierCurveTo(194,224,195,236,196,247);
+            ctx.bezierCurveTo(197,252,197,256,196,261);
+            ctx.bezierCurveTo(199,264,202,268,204,272);
+            ctx.lineTo(205,270);
+            ctx.bezierCurveTo(205,252,206,234,205,213);
+            ctx.bezierCurveTo(204,201,202,188,196,169);
+            ctx.bezierCurveTo(196,164,195,159,194,153);
+            ctx.bezierCurveTo(193,152,193,151,192,150);
+            ctx.bezierCurveTo(183,152,175,153,166,154);
+            ctx.bezierCurveTo(158,155,151,155,143,153);
+            ctx.bezierCurveTo(143,152,144,152,144,151);
+            ctx.bezierCurveTo(144,148,144,144,143,144);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            //Oikea silmä
+            ctx.fillStyle = "#000000";
+            ctx.strokeStyle = "#000000";
+            ctx.lineWidth = 1;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.beginPath();
+            ctx.moveTo(140,100);
+            ctx.bezierCurveTo(140,101,143,100,144,101);
+            ctx.bezierCurveTo(145,101,149,106,149,106);
+            ctx.bezierCurveTo(147,105,145,104,144,103);
+            ctx.bezierCurveTo(143,103,142,103,141,103);
+            ctx.closePath();
+            ctx.fill();
+            //ctx.stroke();
+            
+            //Hiukset
+            ctx.fillStyle = "#fceabe";
+            //ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+            ctx.lineWidth = 1;
+            ctx.lineCap = "butt";
+            ctx.lineJoin = "miter";
+            ctx.beginPath();
+            ctx.moveTo(142,104);
+            ctx.bezierCurveTo(139,103,138,101,137,100);
+            ctx.bezierCurveTo(137,97,136,95,137,91);
+            ctx.bezierCurveTo(136,91,136,91,136,90);
+            ctx.bezierCurveTo(136,89,136,88,136,88);
+            ctx.bezierCurveTo(134,88,134,88,134,88);
+            ctx.bezierCurveTo(133,75,137,78,138,73);
+            ctx.bezierCurveTo(140,70,142,68,142,66);
+            ctx.bezierCurveTo(145,62,149,61,153,61);
+            ctx.bezierCurveTo(155,61,156,62,160,60);
+            ctx.bezierCurveTo(162,59,164,59,166,59);
+            ctx.bezierCurveTo(173,61,176,65,180,70);
+            ctx.bezierCurveTo(182,71,185,72,188,75);
+            ctx.bezierCurveTo(189,78,190,82,189,86);
+            ctx.bezierCurveTo(190,86,192,88,193,89);
+            ctx.bezierCurveTo(194,89,194,90,194,90);
+            ctx.bezierCurveTo(192,94,192,94,192,96);
+            ctx.bezierCurveTo(192,96,192,96,193,98);
+            ctx.bezierCurveTo(192,99,192,101,193,103);
+            ctx.bezierCurveTo(194,105,194,106,195,108);
+            ctx.bezierCurveTo(195,113,194,117,194,121);
+            ctx.bezierCurveTo(194,126,194,130,191,134);
+            ctx.bezierCurveTo(191,136,191,138,190,139);
+            ctx.bezierCurveTo(188,140,187,142,186,143);
+            ctx.bezierCurveTo(183,146,180,146,178,146);
+            ctx.bezierCurveTo(176,150,174,152,171,152);
+            ctx.bezierCurveTo(171,156,168,158,167,161);
+            ctx.bezierCurveTo(165,162,165,164,164,164);
+            ctx.bezierCurveTo(164,167,164,169,165,171);
+            ctx.bezierCurveTo(164,172,163,174,163,176);
+            ctx.bezierCurveTo(163,179,163,181,162,184);
+            ctx.bezierCurveTo(161,187,161,190,160,193);
+            ctx.bezierCurveTo(160,186,158,181,156,176);
+            ctx.bezierCurveTo(156,173,156,170,156,168);
+            ctx.bezierCurveTo(158,165,159,162,160,160);
+            ctx.bezierCurveTo(160,157,160,156,159,152);
+            ctx.bezierCurveTo(161,150,161,146,161,144);
+            ctx.bezierCurveTo(161,141,162,139,163,137);
+            ctx.bezierCurveTo(165,136,167,136,169,136);
+            ctx.bezierCurveTo(169,133,170,131,172,129);
+            ctx.bezierCurveTo(174,128,175,126,177,125);
+            ctx.bezierCurveTo(177,122,177,119,177,116);
+            ctx.bezierCurveTo(179,114,181,112,182,108);
+            ctx.bezierCurveTo(184,107,186,108,188,105);
+            ctx.bezierCurveTo(189,103,189,100,189,97);
+            ctx.bezierCurveTo(188,96,186,96,184,95);
+            ctx.bezierCurveTo(185,99,183,102,182,104);
+            ctx.bezierCurveTo(181,100,180,96,179,92);
+            ctx.bezierCurveTo(172,86,167,83,162,80);
+            ctx.bezierCurveTo(162,82,161,84,162,85);
+            ctx.lineTo(166,90);
+            ctx.bezierCurveTo(164,89,162,88,160,86);
+            ctx.bezierCurveTo(160,84,159,83,158,82);
+            ctx.lineTo(155,82);
+            ctx.bezierCurveTo(154,85,152,85,151,86);
+            ctx.bezierCurveTo(148,86,148,86,147,85);
+            ctx.bezierCurveTo(146,86,144,86,143,85);
+            ctx.bezierCurveTo(142,86,141,88,140,89);
+            ctx.bezierCurveTo(140,95,141,99,142,104);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            //Vasen silmä
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.moveTo(162,104);
+            ctx.bezierCurveTo(163,102,165,101,166,100);
+            ctx.bezierCurveTo(168,100,168,100,170,100);
+            ctx.bezierCurveTo(171,100,172,100,172,101);
+            ctx.bezierCurveTo(173,101,174,101,175,101);
+            ctx.bezierCurveTo(175,101,175,101,175,101);
+            ctx.bezierCurveTo(176,101,175,101,174,102);
+            ctx.lineTo(173,103);
+            ctx.lineTo(172,102);
+            ctx.bezierCurveTo(171,102,169,102,167,102);
+            ctx.bezierCurveTo(165,102,164,103,163,104);
+            ctx.bezierCurveTo(162,104,162,104,162,104);
+            ctx.closePath();
+            ctx.fill();
+            //ctx.stroke();
+
+        ctx.restore();
+        
+        //Kutsutaan lumiukkoa jos se on Elsan takana
+        if(y-siirra*suhde*korkeusSkaalaus < lumiukkoY){
+          Lumiukko();
+        }        
+        
+        // --- PIIRRETÄÄN KAIKKI AMMUKSET lumiukon edessä---         
+        for (var i in missiles) {
+          var missile = missiles[i];
+          
+          if (missile.z/0.65 >= lumiukkoSkaalaus){
+            ctx.lineWidth = 0;
+            ctx.fillStyle = missile.color;
+            ctx.strokeStyle = "black";
+                      
+            ctx.beginPath();
+            //ctx.arc(missile.x,missile.y,boxWidth/2,0,1*Math.PI);
+            ctx.arc(missile.x+boxWidth*suhde,missile.y,(boxWidth/2)*suhde*2*missile.koko,1*Math.PI,Math.PI*2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            missile.update(); //Päivitetään ammukset            
+          }        
+        }
+        
+      }
+    </script>  
+    <style type="text/css">
+      @font-face {
+       font-family:vampyre;
+       src: url(vampyre.ttf);
+      }    
+      * {
+        margin: 0; padding: 0;
+      }
+
+      body, html {
+        height:100%;
+      }                     
+      canvas{
+        position:absolute;
+        width:100%;
+        height:100%;                             
+      } 
+      #kosketus_vasen{
+        position: fixed;
+        left: 0px;
+        bottom: 0px;
+        text-align: left;               
+      }
+      #kosketus_oikea{
+        position: fixed;
+        right: 0px;
+        bottom: 0px;
+        text-align: left;               
+      } 
+      #ohjaus{
+        position: fixed;
+        right: 100px;
+        bottom: 100px;
+        text-align: left;               
+      }                      
+      #kosketus img{
+        opacity: 0.4;
+        filter: alpha(opacity=40); /* For IE8 and earlier */      
+        width: 250px;
+        height: 250px; 
+        margin: 10px;      
+      } 
+      #ohjaus img{
+        opacity: 1;
+        filter: alpha(opacity=100); /* For IE8 and earlier */      
+        width: 50px;
+        height: 50px; 
+        margin: 10px;      
+      }                    
+    </style>
+  </head>
+  <body onload="load();">
+    
+    <canvas id="canvasMaisema"></canvas>
+    <canvas id="canvas"></canvas>
+    
+    <audio preload="auto" id="laser" src="laser.mp3" type="audio/mpeg"></audio>
+    <audio preload="auto" id="jaa" loop src="jaa.mp3" type="audio/mpeg"></audio>
+    <audio preload="auto" id="tausta" loop autoplay src="tausta.mp3" type="audio/mpeg"></audio>
+
+    <div id="kosketus">
+      <div id="kosketus_vasen"><img src="shoot.png" id="shoot"></div>
+      <div id="kosketus_oikea"><img src="move.png" id="liiku"></div>
+      <div id="ohjaus"><img src="center.png" id="center_point"></div>  
+    </div> 
+      
+  </body>
+</html>
